@@ -1,0 +1,1 @@
+cmd_/root/Desktop/hv/hyperv-keyboard.ko := ld -r -m elf_x86_64 -T ./scripts/module-common.lds --build-id  -o /root/Desktop/hv/hyperv-keyboard.ko /root/Desktop/hv/hyperv-keyboard.o /root/Desktop/hv/hyperv-keyboard.mod.o

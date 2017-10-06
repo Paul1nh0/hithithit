@@ -1,0 +1,12 @@
+kernel//root/Desktop/hv/hv_vmbus.ko
+kernel//root/Desktop/hv/hv_storvsc.ko
+kernel//root/Desktop/hv/hv_netvsc.ko
+kernel//root/Desktop/hv/hv_utils.ko
+kernel//root/Desktop/hv/hid-hyperv.ko
+kernel//root/Desktop/hv/hyperv_fb.ko
+kernel//root/Desktop/hv/hv_balloon.ko
+kernel//root/Desktop/hv/hyperv-keyboard.ko
+kernel//root/Desktop/hv/hv_sock.ko
+kernel//root/Desktop/hv/hv_network_direct.ko
+kernel//root/Desktop/hv/pci-hyperv.ko
+kernel//root/Desktop/hv/uio_hv_generic.ko

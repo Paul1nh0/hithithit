@@ -1,0 +1,1 @@
+cmd_/root/Desktop/hv/hv_utils.o := ld -m elf_x86_64   -r -o /root/Desktop/hv/hv_utils.o /root/Desktop/hv/hv_util.o /root/Desktop/hv/hv_kvp.o /root/Desktop/hv/hv_snapshot.o /root/Desktop/hv/hv_fcopy.o /root/Desktop/hv/hv_utils_transport.o ; scripts/mod/modpost /root/Desktop/hv/hv_utils.o

@@ -1,0 +1,1 @@
+cmd_/root/Desktop/hv/hv_netvsc.o := ld -m elf_x86_64   -r -o /root/Desktop/hv/hv_netvsc.o /root/Desktop/hv/netvsc_drv.o /root/Desktop/hv/netvsc.o /root/Desktop/hv/rndis_filter.o ; scripts/mod/modpost /root/Desktop/hv/hv_netvsc.o

@@ -1,0 +1,1 @@
+cmd_/root/Desktop/hv/uio_hv_generic.ko := ld -r -m elf_x86_64 -T ./scripts/module-common.lds --build-id  -o /root/Desktop/hv/uio_hv_generic.ko /root/Desktop/hv/uio_hv_generic.o /root/Desktop/hv/uio_hv_generic.mod.o

@@ -1,0 +1,60 @@
+echo "Building Modules"
+
+echo "Cleaning up from any previous builds"
+make -C /lib/modules/$(uname -r)/build M=`pwd` clean
+[ $? -eq 0 ] || exit 1
+
+echo "Creating LIS modules"
+make -C /lib/modules/$(uname -r)/build M=`pwd` modules
+[ $? -eq 0 ] || exit 1
+
+echo "Installing Modules"
+cp -f ./*.ko /lib/modules/$(uname -r)/extra/
+[ $? -eq 0 ] || exit 1
+
+echo "Generating Module dependencies"
+depmod
+[ $? -eq 0 ] || exit 1
+
+echo "Installing Modprobe Rules"
+cp -f ./hyperv_pvdrivers.conf /etc/modprobe.d/
+[ $? -eq 0 ] || exit 1
+
+echo "Copying scripts for IP injection"
+\cp -f ./tools/hv_get_dns_info.sh /usr/sbin/hv_get_dns_info
+[ $? -eq 0 ] || exit 1
+
+\cp -f ./tools/hv_get_dhcp_info.sh /usr/sbin/hv_get_dhcp_info
+[ $? -eq 0 ] || exit 1
+
+\cp -f ./tools/hv_set_ifconfig.sh /usr/sbin/hv_set_ifconfig
+[ $? -eq 0 ] || exit 1
+
+echo "Copying lsvmbus tool"
+\cp -f ./tools/lsvmbus /usr/sbin/
+[ $? -eq 0 ] || exit 1
+
+echo "Copying bondvf.sh"
+\cp -f ./tools/bondvf.sh /usr/sbin/
+[ $? -eq 0 ] || exit 1
+
+echo "Generating initramfs"
+dracut --force  "initramfs-$(uname -r).img" $(uname -r)
+[ $? -eq 0 ] || exit 1
+
+echo "Saving old initramfs"
+if [ ! -e "/boot/initramfs-$(uname -r).img-old" ]
+then
+	cp -f "/boot/initramfs-$(uname -r).img" "/boot/initramfs-$(uname -r).img-old"
+	[ $? -eq 0 ] || exit 1
+fi
+
+echo "Installing new initramfs"
+cp -f "initramfs-$(uname -r).img" "/boot/initramfs-$(uname -r).img"
+[ $? -eq 0 ] || exit 1
+
+# Remove the local copy of the initramfs image file
+rm -f "./initramfs-$(uname -r).img"
+
+echo "Completed"
+exit 0

@@ -1,0 +1,1 @@
+cmd_/root/Desktop/hv/hv_network_direct.ko := ld -r -m elf_x86_64 -T ./scripts/module-common.lds --build-id  -o /root/Desktop/hv/hv_network_direct.ko /root/Desktop/hv/hv_network_direct.o /root/Desktop/hv/hv_network_direct.mod.o
