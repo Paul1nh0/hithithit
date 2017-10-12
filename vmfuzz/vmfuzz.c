@@ -8,16 +8,24 @@
 #include <linux/slab.h>
 #include <linux/vmalloc.h>
 #include <linux/module.h>
+#include <linux/moduleparam.h>
 #include <linux/init.h>
 #include <linux/export.h>
 #include <linux/random.h>
+#include <linux/delay.h>
+#include <linux/timer.h>
 #include <asm/io.h>
 #include <asm/uaccess.h>
 
 #include "include/linux/hyperv.h"
 #include "hyperv_vmbus.h"
+#include "hyperv_net.h"
 
 MODULE_LICENSE("GPL");
+static short int option;
+module_param(option, short, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+
+char *buffer[10];
 
 int vmfuzz_dumb(struct vmbus_channel *channel, void *buffer, u32 bufferlen)
 {		
@@ -46,36 +54,27 @@ int vmfuzz_dumb(struct vmbus_channel *channel, void *buffer, u32 bufferlen)
 
 	bufferlist[2].iov_base = &aligned_data;
 	bufferlist[2].iov_len = (packetlen_aligned - packetlen);
-	return 0;
-	//return hv_ringbuffer_write(channel, bufferlist, 3);
+	return hv_ringbuffer_write(channel, bufferlist, 3);
 }
 
-int vmfuzz_stor(void)
+int vmfuzz(struct vmbus_channel *channel, int count)
 {
-	char *buffer[10];
+	
 	u32 bufferlen[10];
 	int i, j;
 
-	/* Logging 10 fuzzing input and then fuzz with that inputs */
+	/* Make and log the 10 fuzzing inputs and then fuzz with the inputs */
 	for(i=0; i<10; i++)
 	{
-		buffer[i] = kmalloc(128, GFP_ATOMIC);
 		/* bufferlen = 16 bit random bytes */
 		get_random_bytes(bufferlen+i, sizeof(u16));
 		bufferlen[i] = bufferlen[i] % 112 + 16;
 		/* buffer =  memory filled with random whose size of bufferlen */
 		get_random_bytes(buffer[i], bufferlen[i]);
 		*((char *)buffer[i] + bufferlen[i]) = 0;
-		printk(KERN_ERR "Buffer input %d: ", i);
+		printk(KERN_INFO "Buffer input %d%d: ", count, i);
 		for(j=0; j<bufferlen[i]; j++)	printk(KERN_CONT "%02X", (unsigned char)*(buffer[i]+j));
 		printk(KERN_CONT "\n");
-	}
-	
-	struct vmbus_channel *channel = get_stor_channel();
-	if(channel == NULL)
-	{
-		printk(KERN_ERR "Channel is empty\n"); 
-		return -1;	
 	}
 
 	for(i=0; i<10; i++)
@@ -84,18 +83,43 @@ int vmfuzz_stor(void)
 			printk(KERN_ERR "hv_ringbuffer_write error\n");
 			return -1;
 		}
-		kfree(buffer[i]);
+		//kfree(buffer[i]);
 	}
 	return 0;
 }
 
 int __init init_hello(void)
 {	
-	int i;
-	printk(KERN_ALERT "[Module Message] Hello, VMFUZZ.\n");
+	int count=(FUZZ_SCALE/2);
+	u64 seed;
+	u16 target1, target2;
 
-	//for(i=0; i<1000; i++) vmfuzz_stor();
-	vmfuzz_stor();
+	switch(option)
+	{
+		case 1: // Check Collection and Mutate collected packet
+				//if(get_packet_count()<20000) break;
+				printk(KERN_INFO "[vmfuzz]Collect Packet...Done\n");	
+				for(target1=0; target1<count; target1++)
+				{
+					get_random_bytes(&seed, sizeof(u64));
+					get_random_bytes(&target2, sizeof(u16));
+					mutation_fuzz_net(target1, target2, seed);
+				}
+				printk(KERN_INFO "[vmfuzz]Mutation Done\n");
+				break;
+		case 2: // Make Kernel Log
+				printk(KERN_INFO "[vmfuzz]Make Kernel Log...\n");
+				log_net_fuzz_input();
+				break;
+		case 3: // Send fuzzing Input
+				printk(KERN_INFO "[vmfuzz]Fuzzing...\n");
+				net_fuzzing();
+				break;
+		case 4: // Check packet_count
+				printk(KERN_INFO "[vmfuzz]packet_count: %d\n", get_packet_count());
+
+		default: break;
+	}
 	return 0;
 
 	//vmfuzz_dumb();
@@ -104,7 +128,7 @@ int __init init_hello(void)
 
 void __exit exit_hello(void)
 {
-	printk(KERN_ALERT "[Module Message] Bye, VMFUZZ\n");
+	//printk(KERN_INFO "[Module Message] Bye, VMFUZZ\n");
 }
 
 module_init(init_hello);

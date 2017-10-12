@@ -77,8 +77,8 @@ __attribute__((section("__versions"))) = {
 	{ 0xd795224, __VMLINUX_SYMBOL_STR(dev_err) },
 	{ 0x8f64aa4, __VMLINUX_SYMBOL_STR(_raw_spin_unlock_irqrestore) },
 	{ 0xb8c7ff88, __VMLINUX_SYMBOL_STR(current_task) },
-	{ 0x27e1a049, __VMLINUX_SYMBOL_STR(printk) },
 	{ 0xd58bf9d8, __VMLINUX_SYMBOL_STR(ethtool_op_get_link) },
+	{ 0x27e1a049, __VMLINUX_SYMBOL_STR(printk) },
 	{ 0x449ad0a7, __VMLINUX_SYMBOL_STR(memcmp) },
 	{ 0x4c9d28b0, __VMLINUX_SYMBOL_STR(phys_base) },
 	{ 0x479c3c86, __VMLINUX_SYMBOL_STR(find_next_zero_bit) },
@@ -120,8 +120,8 @@ __attribute__((section("__versions"))) = {
 	{ 0x905307be, __VMLINUX_SYMBOL_STR(napi_complete_done) },
 	{ 0xad480ea0, __VMLINUX_SYMBOL_STR(eth_type_trans) },
 	{ 0xe1768727, __VMLINUX_SYMBOL_STR(netdev_notify_peers) },
-	{ 0xafd969b3, __VMLINUX_SYMBOL_STR(netdev_upper_dev_link) },
 	{ 0x826789e8, __VMLINUX_SYMBOL_STR(pskb_expand_head) },
+	{ 0xafd969b3, __VMLINUX_SYMBOL_STR(netdev_upper_dev_link) },
 	{ 0xbdfb6dbb, __VMLINUX_SYMBOL_STR(__fentry__) },
 	{ 0xd6967e61, __VMLINUX_SYMBOL_STR(netdev_err) },
 	{ 0xc8341533, __VMLINUX_SYMBOL_STR(eth_commit_mac_addr_change) },
@@ -168,5 +168,5 @@ __attribute__((section(".modinfo"))) =
 
 MODULE_ALIAS("vmbus:635161f83edfc546913ff2d2f965ed0e");
 
-MODULE_INFO(srcversion, "9320D39FF6FC5E3C6DDC9CD");
+MODULE_INFO(srcversion, "F7BE8E268428D34F975AA74");
 MODULE_INFO(rhelversion, "7.4");
