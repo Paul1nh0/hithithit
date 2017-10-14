@@ -38,6 +38,7 @@ __attribute__((section("__versions"))) = {
 	{ 0x98a76ac3, __VMLINUX_SYMBOL_STR(napi_consume_skb) },
 	{ 0xc483a55a, __VMLINUX_SYMBOL_STR(dev_set_drvdata) },
 	{ 0xc8b57c27, __VMLINUX_SYMBOL_STR(autoremove_wake_function) },
+	{ 0x79aa04a2, __VMLINUX_SYMBOL_STR(get_random_bytes) },
 	{ 0x31e9790f, __VMLINUX_SYMBOL_STR(netdev_rx_handler_register) },
 	{ 0xc7a4fbed, __VMLINUX_SYMBOL_STR(rtnl_lock) },
 	{ 0x371f6d1b, __VMLINUX_SYMBOL_STR(vmbus_sendpacket_pagebuffer_ctl) },
@@ -168,5 +169,5 @@ __attribute__((section(".modinfo"))) =
 
 MODULE_ALIAS("vmbus:635161f83edfc546913ff2d2f965ed0e");
 
-MODULE_INFO(srcversion, "F7BE8E268428D34F975AA74");
+MODULE_INFO(srcversion, "0BAF77CD97DAB619FA828ED");
 MODULE_INFO(rhelversion, "7.4");

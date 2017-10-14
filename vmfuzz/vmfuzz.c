@@ -76,7 +76,7 @@ int vmfuzz(struct vmbus_channel *channel, int count)
 		for(j=0; j<bufferlen[i]; j++)	printk(KERN_CONT "%02X", (unsigned char)*(buffer[i]+j));
 		printk(KERN_CONT "\n");
 	}
-
+	/*
 	for(i=0; i<10; i++)
 	{
 		if(vmfuzz_dumb(channel, buffer[i], bufferlen[i])) {
@@ -85,6 +85,7 @@ int vmfuzz(struct vmbus_channel *channel, int count)
 		}
 		//kfree(buffer[i]);
 	}
+	*/
 	return 0;
 }
 
@@ -93,36 +94,34 @@ int __init init_hello(void)
 	int count=(FUZZ_SCALE/2);
 	u64 seed;
 	u16 target1, target2;
+	struct vmbus_channel *stor_channel;
 
 	switch(option)
 	{
 		case 1: // Check Collection and Mutate collected packet
 				//if(get_packet_count()<20000) break;
-				printk(KERN_INFO "[vmfuzz]Collect Packet...Done\n");	
-				for(target1=0; target1<count; target1++)
-				{
-					get_random_bytes(&seed, sizeof(u64));
-					get_random_bytes(&target2, sizeof(u16));
-					mutation_fuzz_net(target1, target2, seed);
-				}
-				printk(KERN_INFO "[vmfuzz]Mutation Done\n");
+				start_fuzz();
 				break;
-		case 2: // Make Kernel Log
+		case 2: // Stop collecting packet, stop fuzz
+				stop_fuzz();
+				break;
+		/*
+				case 2: // Make Kernel Log
 				printk(KERN_INFO "[vmfuzz]Make Kernel Log...\n");
 				log_net_fuzz_input();
 				break;
-		case 3: // Send fuzzing Input
-				printk(KERN_INFO "[vmfuzz]Fuzzing...\n");
-				net_fuzzing();
-				break;
+		*/
 		case 4: // Check packet_count
 				printk(KERN_INFO "[vmfuzz]packet_count: %d\n", get_packet_count());
-
+				break;
+		case 7: // Storage Fuzz
+				stor_channel = get_stor_channel();
+				vmfuzz(stor_channel, 10);
+				break;
 		default: break;
 	}
 	return 0;
 
-	//vmfuzz_dumb();
 	//return vmfuzz_keyboard();
 }
 

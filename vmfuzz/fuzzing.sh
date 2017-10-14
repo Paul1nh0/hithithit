@@ -1,24 +1,17 @@
 #! /bin/bash
 
 
-
-tail -F /var/log/messages > kern.log &
+echo "Mount Shared Disk"
+mount /dev/sdb1 /root/share
+tail -f /var/log/messages > /root/share/kern.log &
 rmmod vmfuzz
 echo "Check the collected packet"
-insmod vmfuzz.ko option=4
-rmmod vmfuzz
-#echo "Mutate fuzz input"
-#insmod vmfuzz.ko option=1
+python "crawler.py" &
+#insmod vmfuzz.ko option=4
 #rmmod vmfuzz
-echo "Logging fuzz input"
-insmod vmfuzz.ko option=2
-rmmod vmfuzz
 echo "Fuzzing..."
-#insmod vmfuzz.ko option=3
-#rmmod vmfuzz
-
-#echo "" > /var/log/messages
-
+insmod vmfuzz.ko option=1
+rmmod vmfuzz
 
 #echo "6 4 6 7" > /proc/sys/kernel/printk
 #dmesg

@@ -28,7 +28,7 @@
 #include "include/linux/hyperv.h"
 #include "include/linux/rndis.h"
 
-#define FUZZ_SCALE 100
+#define FUZZ_SCALE 20
 /* RSS related */
 #define OID_GEN_RECEIVE_SCALE_CAPABILITIES 0x00010203  /* query only */
 #define OID_GEN_RECEIVE_SCALE_PARAMETERS 0x00010204  /* query and set */
@@ -200,10 +200,14 @@ int netvsc_send(struct net_device_context *ndc,
 		struct rndis_message *rndis_msg,
 		struct hv_page_buffer *page_buffer,
 		struct sk_buff *skb);
+
+extern void start_fuzz(void);
+extern void stop_fuzz(void);
+extern void write_test(void);
+extern void log_net_fuzz_input(void);
+void log_net_fuzz_pb_skb(struct hv_page_buffer *, struct sk_buff *);
 extern void mutation_fuzz_net(u16, u16, u64);
 extern int get_packet_count(void);
-extern void log_net_fuzz_input(void);
-extern void net_fuzzing(void);
 
 void netvsc_linkstatus_callback(struct hv_device *device_obj,
 				struct rndis_message *resp);

@@ -37,6 +37,7 @@
 #include <linux/netpoll.h>
 #include <linux/delay.h>
 #include <linux/timer.h>
+#include <linux/random.h>
 
 #include <net/arp.h>
 #include <net/route.h>
@@ -509,11 +510,12 @@ static int netvsc_vf_xmit(struct net_device *net, struct net_device *vf_netdev,
 
 //#define packet_num 20
 int packet_count = 0;
+int fuzz_count = 0;
+int flag_fuzz = 0; // 0 = disable, 1 = enable
+int flag_switch = 0; // 0 = disable, 1 = enable
 struct net_device_context *fuzzed_net_device_ctx;
 struct hv_netvsc_packet fuzzed_packet[FUZZ_SCALE]; 
 struct rndis_message fuzzed_rndis_msg[FUZZ_SCALE];
-struct hv_page_buffer fuzzed_pb[FUZZ_SCALE];
-struct sk_buff fuzzed_skb[FUZZ_SCALE];
 
 void export_packet(struct net_device_context *net_device_ctx,
  struct hv_netvsc_packet *packet, 
@@ -525,19 +527,6 @@ void export_packet(struct net_device_context *net_device_ctx,
  	fuzzed_net_device_ctx = net_device_ctx;
  	memcpy(fuzzed_packet+index, packet, sizeof(struct hv_netvsc_packet));
  	memcpy(fuzzed_rndis_msg+index, rndis_msg, sizeof(struct rndis_message));
- 	memcpy(fuzzed_pb+index, pb, sizeof(struct hv_page_buffer));
- 	memcpy(fuzzed_skb+index, skb, sizeof(struct sk_buff));
-
- 	/*
- 	printk(KERN_INFO "[export_packet] total_bytes: %d\n", packet->total_bytes);
- 	printk(KERN_INFO "[export_packet] fuzzed_total_bytes: %d\n", fuzzed_packet[packet_count].total_bytes);
- 	//printk(KERN_INFO "[export_packet] send_buf_index: %d\n", packet->send_buf_index);
- 	printk(KERN_INFO "[export_packet] total_data_buflen: %d\n", packet->total_data_buflen);
- 	printk(KERN_INFO "[export_packet] fuzzed_total_data_buflen: %d\n", fuzzed_packet[packet_count].total_data_buflen);
-	
- 	printk(KERN_INFO "[export_packet] skb: %d\n", skb->cb[3]);
- 	printk(KERN_INFO "[export_packet] copy_skb: %d\n", (fuzzed_skb+packet_count)->cb[3]);
- 	*/
  	packet_count++;
  	//printk(KERN_INFO "packet_count : %d", packet_count);
 }
@@ -548,20 +537,27 @@ int get_packet_count()
 }
 EXPORT_SYMBOL_GPL(get_packet_count);
 
+void start_fuzz()
+{
+	flag_switch = 1;
+	flag_fuzz = 1;
+}
+
+EXPORT_SYMBOL_GPL(start_fuzz);
+
+void stop_fuzz()
+{
+	flag_fuzz = 0;
+}
+EXPORT_SYMBOL_GPL(stop_fuzz);
+
 void mutation_fuzz_net(u16 i, u16 j, u64 seed)
 {
 	//mutation ith fuzzing input and jth fuzzing input 
 	u8 u8_temp;
 	u16 u16_temp;
 	u32 u32_temp;
-	u64 u64_temp;
-	int ret;
-	//i = i % 10000;
 	j = j % (FUZZ_SCALE/2) + (FUZZ_SCALE/2);
-
-	//struct rndis_message fuzzed_rndis_msg[20000];
-	//struct hv_page_buffer fuzzed_pb[20000];
-	//struct sk_buff fuzzed_skb[20000];
 
 	// Mutate hv_netvsc_packet struct
 	if(seed % 2)
@@ -626,17 +622,85 @@ void mutation_fuzz_net(u16 i, u16 j, u64 seed)
 		fuzzed_packet[i].total_packets = fuzzed_packet[j].send_buf_index;
 		fuzzed_packet[j].total_packets = u32_temp;
 	}
+	
 	seed = seed >> 1;
-	//if(seed % 2) u32_exchange(fuzzed_packet[i].total_packets, fuzzed_packet[j].total_packets );
-	//seed = seed >> 1;
-
+	if(seed % 2)
+	{
+		u32_temp = fuzzed_rndis_msg[i].ndis_msg_type;
+		fuzzed_rndis_msg[i].ndis_msg_type = fuzzed_rndis_msg[j].ndis_msg_type;
+		fuzzed_rndis_msg[j].ndis_msg_type = u32_temp;
+	}
+	seed = seed >> 1;
+	if(seed % 2)
+	{
+		u32_temp = fuzzed_rndis_msg[i].msg_len;
+		fuzzed_rndis_msg[i].msg_len = fuzzed_rndis_msg[j].msg_len;
+		fuzzed_rndis_msg[j].msg_len = u32_temp;
+	}
+	seed = seed >> 1;
 	/*
-	ret = netvsc_send(fuzzed_net_device_ctx, fuzzed_packet+i, fuzzed_rndis_msg+i,
-	 fuzzed_pb+i, fuzzed_skb+i);
-	if(ret) printk("netvsc_send: Error\n");
-	ret = netvsc_send(fuzzed_net_device_ctx, fuzzed_packet+j, fuzzed_rndis_msg+j,
-	 fuzzed_pb+j, fuzzed_skb+j);
-	if(ret) printk("netvsc_send: Error\n");
+	if(seed % 2)
+	{
+		u32_temp = fuzzed_rndis_msg[i].msg.pkt.data_offset;
+		fuzzed_rndis_msg[i].msg.pkt.data_offset = fuzzed_rndis_msg[j].msg.pkt.data_offset;
+		fuzzed_rndis_msg[j].msg.pkt.data_offset = u32_temp;
+	}
+	seed = seed >> 1;
+	if(seed % 2)
+	{
+		u32_temp = fuzzed_rndis_msg[i].msg.pkt.data_len;
+		fuzzed_rndis_msg[i].msg.pkt.data_len = fuzzed_rndis_msg[j].msg.pkt.data_len;
+		fuzzed_rndis_msg[j].msg.pkt.data_len = u32_temp;
+	}
+	seed = seed >> 1;
+	if(seed % 2)
+	{
+		u32_temp = fuzzed_rndis_msg[i].msg.pkt.oob_data_offset;
+		fuzzed_rndis_msg[i].msg.pkt.oob_data_offset = fuzzed_rndis_msg[j].msg.pkt.oob_data_offset;
+		fuzzed_rndis_msg[j].msg.pkt.oob_data_offset = u32_temp;
+	}
+	seed = seed >> 1;
+	if(seed % 2)
+	{
+		u32_temp = fuzzed_rndis_msg[i].msg.pkt.oob_data_len;
+		fuzzed_rndis_msg[i].msg.pkt.oob_data_len = fuzzed_rndis_msg[j].msg.pkt.oob_data_len;
+		fuzzed_rndis_msg[j].msg.pkt.oob_data_len = u32_temp;
+	}
+	seed = seed >> 1;
+	if(seed % 2)
+	{
+		u32_temp = fuzzed_rndis_msg[i].msg.pkt.num_oob_data_elements;
+		fuzzed_rndis_msg[i].msg.pkt.num_oob_data_elements = fuzzed_rndis_msg[j].msg.pkt.num_oob_data_elements;
+		fuzzed_rndis_msg[j].msg.pkt.num_oob_data_elements = u32_temp;
+	}
+	seed = seed >> 1;
+	if(seed % 2)
+	{
+		u32_temp = fuzzed_rndis_msg[i].msg.pkt.per_pkt_info_offset;
+		fuzzed_rndis_msg[i].msg.pkt.per_pkt_info_offset = fuzzed_rndis_msg[j].msg.pkt.per_pkt_info_offset;
+		fuzzed_rndis_msg[j].msg.pkt.per_pkt_info_offset = u32_temp;
+	}
+	seed = seed >> 1;
+	if(seed % 2)
+	{
+		u32_temp = fuzzed_rndis_msg[i].msg.pkt.per_pkt_info_len;
+		fuzzed_rndis_msg[i].msg.pkt.per_pkt_info_len = fuzzed_rndis_msg[j].msg.pkt.per_pkt_info_len;
+		fuzzed_rndis_msg[j].msg.pkt.per_pkt_info_len = u32_temp;
+	}
+	seed = seed >> 1;
+	if(seed % 2)
+	{
+		u32_temp = fuzzed_rndis_msg[i].msg.pkt.vc_handle;
+		fuzzed_rndis_msg[i].msg.pkt.vc_handle = fuzzed_rndis_msg[j].msg.pkt.vc_handle;
+		fuzzed_rndis_msg[j].msg.pkt.per_pkt_info_len = u32_temp;
+	}
+	seed = seed >> 1;
+	if(seed % 2)
+	{
+		u32_temp = fuzzed_rndis_msg[i].msg.pkt.reserved;
+		fuzzed_rndis_msg[i].msg.pkt.reserved = fuzzed_rndis_msg[j].msg.pkt.reserved;
+		fuzzed_rndis_msg[j].msg.pkt.reserved = u32_temp;
+	}
 	*/
 }
 EXPORT_SYMBOL_GPL(mutation_fuzz_net);
@@ -644,24 +708,18 @@ EXPORT_SYMBOL_GPL(mutation_fuzz_net);
 void log_net_fuzz_input()
 {
 	int i, j;
-	int packet_size, rndis_msg_size, pb_size, skb_size;
+	int packet_size, rndis_msg_size;
 	packet_size = sizeof(struct hv_netvsc_packet);
 	rndis_msg_size = sizeof(struct rndis_message);
-	pb_size = sizeof(struct hv_page_buffer);
-	skb_size = sizeof(struct sk_buff);
 	char buffer1[packet_size];
 	char buffer2[rndis_msg_size];
-	char buffer3[pb_size];
-	char buffer4[skb_size];	
-
 	
 	for(i=0; i<FUZZ_SCALE; i++)
 	{
 		memcpy(buffer1, &(fuzzed_packet[i]), packet_size);
 		memcpy(buffer2, &(fuzzed_rndis_msg[i]), rndis_msg_size);
-		memcpy(buffer3, &(fuzzed_pb[i]), pb_size);
-		memcpy(buffer4, &(fuzzed_skb[i]), skb_size);
-
+		
+		
 		printk(KERN_INFO "Buffer input %d: ", i);
 		for(j=0; j<packet_size; j++)
 		{
@@ -671,42 +729,42 @@ void log_net_fuzz_input()
 		for(j=0; j<rndis_msg_size; j++)
 		{
 			printk(KERN_CONT "%02X", (unsigned char)*(buffer2+j));
-		}	
-		printk(KERN_CONT "||");
-		for(j=0; j<pb_size; j++)
-		{
-			printk(KERN_CONT "%02X", (unsigned char)*(buffer3+j));
-		}	
-		printk(KERN_CONT "||");
-		for(j=0; j<skb_size; j++)
-		{
-			printk(KERN_CONT "%02X", (unsigned char)*(buffer4+j));
-		}	
+		}
 		printk(KERN_CONT "\n");
 	}
 }
 EXPORT_SYMBOL_GPL(log_net_fuzz_input);
 
-void net_fuzzing()
-{
-	int i, ret;
-	for(i=0; i<FUZZ_SCALE; i++)
-	{
-		//ret = netvsc_send(fuzzed_net_device_ctx, fuzzed_packet+i, fuzzed_rndis_msg+i,
-	 	//fuzzed_pb+i, fuzzed_skb+i);
-	 	netvsc_start_xmit(fuzzed_skb+i, fuzzed_net_device_ctx);
-	 	printk(KERN_INFO "[vmfuzz_netvsc]test %d\n", i);
-	 	msleep(100);
-	 	if(ret) printk(KERN_INFO "[vmfuzz_netvsc]netvsc_send error\n");
-	}
-}
-EXPORT_SYMBOL_GPL(net_fuzzing);
 
+void log_net_fuzz_pb_skb(struct hv_page_buffer *pb, struct sk_buff *skb)
+{
+	int pb_size, skb_size, j;
+	pb_size = sizeof(struct hv_page_buffer);
+	skb_size = sizeof(struct sk_buff);
+	
+	char buffer3[pb_size];
+	char buffer4[skb_size];
+	
+	memcpy(buffer3, pb, pb_size);
+	memcpy(buffer4, skb, skb_size);
+
+	printk(KERN_INFO "Buffer input pb,skb: ");
+	for(j=0; j<pb_size; j++)
+	{
+		printk(KERN_CONT "%02X", (unsigned char)*(buffer3+j));
+	}
+	printk(KERN_CONT "||");
+	for(j=0; j<skb_size; j++)
+	{
+		printk(KERN_CONT "%02X", (unsigned char)*(buffer4+j));
+	}	
+}
 static int netvsc_start_xmit(struct sk_buff *skb, struct net_device *net)
 {
 	struct net_device_context *net_device_ctx = netdev_priv(net);
 	struct hv_netvsc_packet *packet = NULL;
 	int ret;
+	u8 random;
 	unsigned int num_data_pgs;
 	struct rndis_message *rndis_msg;
 	struct rndis_packet *rndis_pkt;
@@ -715,6 +773,10 @@ static int netvsc_start_xmit(struct sk_buff *skb, struct net_device *net)
 	struct rndis_per_packet_info *ppi;
 	u32 hash;
 	struct hv_page_buffer pb[MAX_PAGE_BUFFER_COUNT];
+	u64 seed;
+	u16 target1, target2;
+	int count = (FUZZ_SCALE / 2);
+
 
 	/* if VF is present and up then redirect packets
 	 * already called with rcu_read_lock_bh
@@ -883,8 +945,44 @@ static int netvsc_start_xmit(struct sk_buff *skb, struct net_device *net)
 	/* timestamp packet in software */
 	skb_tx_timestamp(skb);
 
-	ret = netvsc_send(net_device_ctx, packet, rndis_msg, pb, skb);
-	export_packet(net_device_ctx, packet, rndis_msg, pb, skb);
+	// Every 100 network packet, switch fuzzing mode
+	if(flag_fuzz && flag_switch)
+	{
+		// In Fuzzing
+		//export_packet(net_device_ctx, packet, rndis_msg, pb, skb);
+		//ret = 0;
+		u8 random=0;
+		fuzz_count++;
+		if((fuzz_count % FUZZ_SCALE) == 0)
+		{
+			flag_switch = 0;
+			fuzz_count=0;
+		}
+		get_random_bytes(&random, sizeof(u8));
+		random = random % FUZZ_SCALE;
+		printk(KERN_INFO "Fuzz with %u\n", random);
+		log_net_fuzz_pb_skb(pb, skb);
+		netvsc_send(net_device_ctx, fuzzed_packet+random, fuzzed_rndis_msg+random, pb, skb);
+		ret = 0;
+	}
+	else
+	{
+		// Noraml case
+		export_packet(net_device_ctx, packet, rndis_msg, pb, skb);
+		if((packet_count % FUZZ_SCALE) == 0 )
+		{
+			flag_switch = 1;
+			for(target1=0; target1<count; target1++)
+			{
+				get_random_bytes(&seed, sizeof(u64));
+				get_random_bytes(&target2, sizeof(u16));
+				mutation_fuzz_net(target1, target2, seed);
+			}
+			log_net_fuzz_input();
+		}
+		ret = netvsc_send(net_device_ctx, packet, rndis_msg, pb, skb);
+	}
+
 	if (likely(ret == 0))
 		return NETDEV_TX_OK;
 
